@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import '../helpers/dio_client.dart';
 import '../widgets/tiki_navbar.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class LoginRefugiosPage extends StatefulWidget {
+  const LoginRefugiosPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<LoginRefugiosPage> createState() => _LoginRefugiosPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginRefugiosPageState extends State<LoginRefugiosPage> {
   final TextEditingController correoController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   String mensaje = '';
@@ -24,7 +24,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final response = await DioClient.dio.post(
-        '/usuarios/login',
+        '/refugios/login',
         data: {
           'correo': correoController.text.trim(),
           'password': passwordController.text.trim(),
@@ -37,7 +37,7 @@ class _LoginPageState extends State<LoginPage> {
       print('Respuesta JSON: $body');
 
       if (response.statusCode == 200 && body['success'] == true) {
-        Navigator.pushReplacementNamed(context, '/usuario');
+        Navigator.pushReplacementNamed(context, '/refugio');
       } else {
         setState(() {
           mensaje = 'Error: ${body['message'] ?? 'No se pudo iniciar sesión'}';
@@ -57,7 +57,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login - TikiTiki')),
+      appBar: AppBar(title: const Text('Login Refugios - TikiTiki')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -77,28 +77,40 @@ class _LoginPageState extends State<LoginPage> {
                 ? const CircularProgressIndicator()
                 : ElevatedButton(
                     onPressed: login,
-                    child: const Text('Iniciar Sesión'),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 50),
+                    ),
+                    child: const Text('Iniciar Sesión como Refugio'),
                   ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushReplacementNamed(context, '/login');
+              },
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              child: const Text('Volver al Login de Usuarios'),
+            ),
             const SizedBox(height: 10),
             ElevatedButton(
               onPressed: () {
                 Navigator.pushNamed(context, '/crearcuenta');
               },
-              child: const Text('Crear Cuenta'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              child: const Text('Crear Cuenta de Usuario'),
             ),
             const SizedBox(height: 10),
             ElevatedButton(
               onPressed: () {
                 Navigator.pushNamed(context, '/registrarrefugio');
               },
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
+              ),
               child: const Text('Registrar Refugio'),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/loginrefugio');
-              },
-              child: const Text('Iniciar sesión como Refugio'),
             ),
             const SizedBox(height: 20),
             Text(

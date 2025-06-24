@@ -46,7 +46,7 @@ class AboutPage extends StatelessWidget {
       ),
       bottomNavigationBar: TikiNavBar(
         selectedIndex: -1, // No hay una sección activa exacta
-        context: context,  // Necesario para verificación
+        
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {},

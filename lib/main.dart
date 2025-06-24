@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'helpers/dio_client.dart';
-import 'pages/index_page.dart';
-import 'pages/refugios_page.dart';
-import 'pages/buscar_page.dart';
+
+// Páginas principales
+import 'pages/index_page.dart' as index;
+import 'pages/buscar_page.dart' as buscar;
 import 'pages/login_page.dart';
 import 'pages/about_page.dart';
 import 'pages/usuario_page.dart';
-import 'pages/loginrefugio_page..dart';
+import 'pages/loginrefugio_page.dart';
 import 'pages/refugio_page.dart';
+import 'pages/agregarmascotapage.dart';
+import 'pages/mascotainfo_page.dart';
+import 'pages/refugios_page.dart';
+import 'pages/refugioinformacion_page.dart' as info;
+import 'pages/mascotainfosolicitud.dart';
+import 'pages/solicitudes_page.dart';
 
 void main() {
-  DioClient.init(); // Iniciar Dio y CookieManager
+  DioClient.init();
   runApp(const AppLauncher());
 }
 
@@ -26,62 +33,81 @@ class AppLauncher extends StatelessWidget {
   }
 }
 
-class MainWrapper extends StatefulWidget {
+class MainWrapper extends StatelessWidget {
   const MainWrapper({super.key});
 
-  @override
-  State<MainWrapper> createState() => _MainWrapperState();
-}
-
-class _MainWrapperState extends State<MainWrapper> {
-  String? initialRoute;
-
-  @override
-  void initState() {
-    super.initState();
-    verificarSesion();
-  }
-
-  Future<void> verificarSesion() async {
+  Future<String> _determinarRutaInicial() async {
     try {
       final response = await DioClient.dio.get('/usuarios/api/auth/check');
       final data = response.data;
 
-      print('Verificación: $data');
-
       if (data['isValid'] == true && data['tipo'] == 'usuario') {
-        initialRoute = '/usuario';
+        return '/usuario';
       } else {
-        initialRoute = '/login';
+        return '/login';
       }
     } catch (e) {
-      print('Error al verificar sesión: $e');
-      initialRoute = '/login';
+      return '/login';
     }
-
-    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    if (initialRoute == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
+    return FutureBuilder<String>(
+      future: _determinarRutaInicial(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      initialRoute: initialRoute!,
-      routes: {
-        '/': (context) => const IndexPage(),
-        '/refugios': (context) => const RefugiosPage(),
-        '/buscar': (context) => const BuscarPage(),
-        '/login': (context) => const LoginPage(),
-        '/about': (context) => const AboutPage(),
-        '/usuario': (context) => const UsuarioPage(),
-        '/loginrefugio': (context) => const LoginRefugiosPage(),
-        '/refugio': (context) => const RefugioPage(),
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          initialRoute: snapshot.data!,
+          routes: {
+            '/': (context) => const index.IndexPage(),
+            '/refugios': (context) => const RefugiosPage(),
+            '/buscar': (context) => const buscar.BuscarPage(),
+            '/login': (context) => const LoginPage(),
+            '/about': (context) => const AboutPage(),
+            '/usuario': (context) => const UsuarioPage(),
+            '/loginrefugio': (context) => const LoginRefugiosPage(),
+            '/refugio': (context) => const RefugioPage(),
+            '/registrarmascota': (context) => const AgregarMascotaPage(),
+          },
+          onGenerateRoute: (settings) {
+            if (settings.name == '/mascotainfo') {
+              final mascota = settings.arguments as Map<String, dynamic>;
+              return MaterialPageRoute(
+                builder: (_) => MascotaInfoPage(mascota: mascota),
+              );
+            }
+
+            if (settings.name == '/refugioinfo') {
+              final refugio = settings.arguments as Map<String, dynamic>;
+              return MaterialPageRoute(
+                builder: (_) => info.RefugioInformacionPage(refugio: refugio),
+              );
+            }
+
+            if (settings.name == '/mascotainfosolicitud') {
+              final mascota = settings.arguments as Map<String, dynamic>;
+              return MaterialPageRoute(
+                builder: (_) => MascotaInfoSolicitudPage(mascota: mascota),
+              );
+            }
+
+            if (settings.name == '/formulariosolicitud') {
+              final mascota = settings.arguments as Map<String, dynamic>;
+              return MaterialPageRoute(
+                builder: (_) => SolicitudFormularioPage(mascota: mascota),
+              );
+            }
+
+            return null;
+          },
+        );
       },
     );
   }

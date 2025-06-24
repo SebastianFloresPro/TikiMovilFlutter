@@ -3,33 +3,36 @@ import '../helpers/dio_client.dart';
 
 class TikiNavBar extends StatelessWidget {
   final int selectedIndex;
-  final BuildContext context;
 
   const TikiNavBar({
     super.key,
     required this.selectedIndex,
-    required this.context,
   });
 
-  Future<void> _onItemTapped(int index) async {
-    if (index == 4) {
-      final tipoSesion = await _verificarTipoSesion();
+  Future<void> _onItemTapped(BuildContext context, int index) async {
+    // Difere la navegación para evitar errores de render
+    Future.microtask(() async {
       if (!context.mounted) return;
 
-      if (tipoSesion == 'usuario') {
-        Navigator.pushReplacementNamed(context, '/usuario');
-      } else if (tipoSesion == 'refugio') {
-        Navigator.pushReplacementNamed(context, '/refugio');
-      } else {
-        Navigator.pushReplacementNamed(context, '/login');
+      if (index == 4) {
+        final tipoSesion = await _verificarTipoSesion();
+        if (!context.mounted) return;
+
+        if (tipoSesion == 'usuario') {
+          Navigator.pushReplacementNamed(context, '/usuario');
+        } else if (tipoSesion == 'refugio') {
+          Navigator.pushReplacementNamed(context, '/refugio');
+        } else {
+          Navigator.pushReplacementNamed(context, '/login');
+        }
+      } else if (index == 0) {
+        Navigator.pushReplacementNamed(context, '/');
+      } else if (index == 1) {
+        Navigator.pushReplacementNamed(context, '/refugios');
+      } else if (index == 3) {
+        Navigator.pushReplacementNamed(context, '/buscar');
       }
-    } else if (index == 0) {
-      Navigator.pushReplacementNamed(context, '/');
-    } else if (index == 1) {
-      Navigator.pushReplacementNamed(context, '/refugios');
-    } else if (index == 3) {
-      Navigator.pushReplacementNamed(context, '/buscar');
-    }
+    });
   }
 
   Future<String?> _verificarTipoSesion() async {
@@ -64,23 +67,23 @@ class TikiNavBar extends StatelessWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.home),
-            onPressed: () => _onItemTapped(0),
+            onPressed: () => _onItemTapped(context, 0),
             color: selectedIndex == 0 ? Colors.teal : Colors.grey,
           ),
           IconButton(
             icon: const Icon(Icons.local_hospital),
-            onPressed: () => _onItemTapped(1),
+            onPressed: () => _onItemTapped(context, 1),
             color: selectedIndex == 1 ? Colors.teal : Colors.grey,
           ),
-          const SizedBox(width: 40),
+          const SizedBox(width: 40), // espacio para el FAB
           IconButton(
             icon: const Icon(Icons.search),
-            onPressed: () => _onItemTapped(3),
+            onPressed: () => _onItemTapped(context, 3),
             color: selectedIndex == 3 ? Colors.teal : Colors.grey,
           ),
           IconButton(
             icon: const Icon(Icons.person),
-            onPressed: () => _onItemTapped(4),
+            onPressed: () => _onItemTapped(context, 4),
             color: selectedIndex == 4 ? Colors.teal : Colors.grey,
           ),
         ],

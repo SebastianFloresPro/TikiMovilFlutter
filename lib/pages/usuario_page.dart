@@ -164,7 +164,7 @@ class _UsuarioPageState extends State<UsuarioPage> {
             ),
       bottomNavigationBar: TikiNavBar(
         selectedIndex: 4,
-        context: context,
+       
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {

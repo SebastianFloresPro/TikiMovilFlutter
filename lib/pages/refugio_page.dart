@@ -29,19 +29,25 @@ class _RefugioPageState extends State<RefugioPage> {
 
       if (authData['isValid'] == true && authData['tipo'] == 'refugio') {
         final perfilResponse = await DioClient.dio.get('/refugios/api/perfil');
+        if (!mounted) return;
         setState(() {
           refugio = perfilResponse.data['refugio'];
         });
         await cargarMascotas();
         await cargarSolicitudes();
       } else {
-        Navigator.pushReplacementNamed(context, '/login');
+        if (!mounted) return;
+        Future.microtask(() {
+          Navigator.pushReplacementNamed(context, '/login');
+        });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         mensaje = 'Error al cargar datos: $e';
       });
     } finally {
+      if (!mounted) return;
       setState(() {
         cargando = false;
       });
@@ -51,12 +57,13 @@ class _RefugioPageState extends State<RefugioPage> {
   Future<void> cargarMascotas() async {
     try {
       final response = await DioClient.dio.get('/refugios/mascotas');
-      if (response.data['success'] == true) {
+      if (response.data['success'] == true && mounted) {
         setState(() {
           mascotas = response.data['mascotas'];
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         mensaje = 'Error al cargar mascotas: $e';
       });
@@ -69,25 +76,51 @@ class _RefugioPageState extends State<RefugioPage> {
         '/solicitudes/solicitudes',
         queryParameters: {'tipo': 'refugio', 'id': refugio?['idcentro']},
       );
-      if (response.data['success'] == true) {
+      if (response.data['success'] == true && mounted) {
         setState(() {
           solicitudes = response.data['solicitudes'];
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         mensaje = 'Error al cargar solicitudes: $e';
       });
     }
   }
 
+ Future<void> actualizarEstadoSolicitud(int solicitudId, String nuevoEstado) async {
+  try {
+    final url = '/solicitudes/$solicitudId/estado';  // <-- Correcto si corriges el backend
+    print('Enviando POST a: $url');
+
+    final response = await DioClient.dio.post(
+      url,
+      data: {'estado': nuevoEstado},
+    );
+
+    if (response.data['success'] == true && mounted) {
+      await cargarSolicitudes();
+    } else {
+      setState(() {
+        mensaje = response.data['message'] ?? 'No se pudo actualizar el estado.';
+      });
+    }
+  } catch (e) {
+    setState(() {
+      mensaje = 'Error al actualizar estado: $e';
+    });
+  }
+}
+
   Future<void> logout() async {
     try {
       final response = await DioClient.dio.post('/refugios/logout');
-      if (response.data['success'] == true) {
+      if (response.data['success'] == true && mounted) {
         Navigator.pushReplacementNamed(context, '/login');
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         mensaje = 'Error al cerrar sesión: $e';
       });
@@ -119,8 +152,10 @@ class _RefugioPageState extends State<RefugioPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Datos del Refugio',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Datos del Refugio',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 10),
                   Text('Centro: ${refugio!['nombrecentro']}'),
                   Text('Encargado: ${refugio!['nombreencargado']}'),
@@ -132,11 +167,17 @@ class _RefugioPageState extends State<RefugioPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Mascotas Registradas',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Mascotas Registradas',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
                       ElevatedButton(
                         onPressed: () {
-                          Navigator.pushNamed(context, '/registrarmascota');
+                          Future.microtask(() {
+                            if (mounted) {
+                              Navigator.pushNamed(context, '/registrarmascota');
+                            }
+                          });
                         },
                         child: const Text('Agregar Mascota'),
                       ),
@@ -147,50 +188,117 @@ class _RefugioPageState extends State<RefugioPage> {
                     const Text('No hay mascotas registradas.')
                   else
                     ...mascotas.map((m) => Card(
-                          margin: const EdgeInsets.symmetric(vertical: 8),
-                          child: ListTile(
-                            leading: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                m['foto'] ?? 'https://via.placeholder.com/50',
-                                width: 50,
-                                height: 50,
-                                fit: BoxFit.cover,
-                              ),
+                          margin: const EdgeInsets.symmetric(vertical: 10),
+                          elevation: 3,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        m['foto'] != null && m['foto'].toString().isNotEmpty
+                                            ? 'https://moviltika-production.up.railway.app/uploads/${m['foto']}'
+                                            : 'https://via.placeholder.com/80',
+                                        width: 80,
+                                        height: 80,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            m['nombre'],
+                                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                          ),
+                                          Text('${m['especie']} - ${m['genero']}'),
+                                          Text('${m['edad']} años'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pushNamed(context, '/mascotainfo', arguments: m);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.teal,
+                                    ),
+                                    child: const Text('Mostrar Mascota'),
+                                  ),
+                                ),
+                              ],
                             ),
-                            title: Text(m['nombre']),
-                            subtitle: Text('${m['especie']} - ${m['genero']}, ${m['edad']} años'),
                           ),
                         )),
                   const SizedBox(height: 30),
 
-                  const Text('Solicitudes de Adopción',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Solicitudes de Adopción',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 10),
                   if (solicitudes.isEmpty)
                     const Text('No hay solicitudes.')
                   else
                     ...solicitudes.map((s) => Card(
                           margin: const EdgeInsets.symmetric(vertical: 8),
-                          child: ListTile(
-                            title: Text('Mascota: ${s['mascota_nombre']}'),
-                            subtitle: Text('Estado: ${s['estado']}, Fecha: ${s['fecha']?.substring(0, 10) ?? 'N/A'}'),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Mascota: ${s['mascota_nombre']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                Text('Estado: ${s['estado']}'),
+                                Text('Fecha: ${s['fecha']?.substring(0, 10) ?? 'N/A'}'),
+                                const SizedBox(height: 8),
+                                if (s['estado'] == 'pendiente')
+                                  Row(
+                                    children: [
+                                      ElevatedButton.icon(
+                                        onPressed: () => actualizarEstadoSolicitud(s['idsolicitud'], 'aceptado'),
+                                        icon: const Icon(Icons.check),
+                                        label: const Text('Aceptar'),
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      ElevatedButton.icon(
+                                        onPressed: () => actualizarEstadoSolicitud(s['idsolicitud'], 'rechazado'),
+                                        icon: const Icon(Icons.close),
+                                        label: const Text('Rechazar'),
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                      ),
+                                    ],
+                                  ),
+                              ],
+                            ),
                           ),
                         )),
                   const SizedBox(height: 20),
-                  Text(mensaje, style: const TextStyle(color: Colors.red)),
+                  if (mensaje.isNotEmpty)
+                    Text(
+                      mensaje,
+                      style: const TextStyle(color: Colors.red),
+                    ),
                 ],
               ),
             ),
-      bottomNavigationBar: TikiNavBar(
-        selectedIndex: 4,
-        context: context,
-      ),
+      bottomNavigationBar: const TikiNavBar(selectedIndex: 4),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/about');
-        },
+        onPressed: () => Navigator.pushNamed(context, '/about'),
         backgroundColor: Colors.teal,
+        child: const Icon(Icons.add),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
